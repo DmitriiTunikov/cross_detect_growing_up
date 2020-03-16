@@ -24,12 +24,18 @@
     <ClCompile Include="cross_detector.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
+    <ClCompile Include="draw.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="cv_supp.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cross_detector.h">
       <Filter>Source Files\src</Filter>
     </ClInclude>
-    <ClInclude Include="support.h">
+    <ClInclude Include="cv_supp.h">
       <Filter>Source Files\src</Filter>
     </ClInclude>
   </ItemGroup>

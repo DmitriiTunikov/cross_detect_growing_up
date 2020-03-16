@@ -134,11 +134,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="cross_detector.cpp" />
+    <ClCompile Include="cv_supp.cpp" />
+    <ClCompile Include="draw.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cross_detector.h" />
-    <ClInclude Include="support.h" />
+    <ClInclude Include="cv_supp.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

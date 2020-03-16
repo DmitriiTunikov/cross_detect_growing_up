@@ -3,7 +3,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include "cross_detector.h"
-#include "support.h"
 #include <chrono>
 
 using namespace cv;
@@ -38,17 +37,9 @@ int main(int argc, char** argv) {
 	using namespace std::chrono;
 
 	milliseconds start_time = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-
-	//algorithm
-	std::vector<cv::Mat> int_images = support::get_integral_images(gray_img);
 	
-	cross_algo::grid_t grid;
-
-	cross_algo::growing_point_sets_t res_grow_up = cross_algo::growing_up(int_images, image, grid);
-	cross_algo::draw_growing_point_sets(res_grow_up, image);
-
-	std::vector<Point> cross_res = cross_algo::get_cross_result(grid);
-	cross_algo::draw_crosses(cross_res, gray_img);
+	CrossDetector cross_detector(gray_img, image);
+	cross_detector.detect_crosses(true);
 
 	milliseconds diff = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - start_time;
 	std::cout << "time: " << diff.count() << "ms" << std::endl;
