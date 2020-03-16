@@ -13,15 +13,6 @@ namespace cross_algo {
 		Cell(const cv::Point2i& p_, const cv::Point2i& grid_coord_, const int& size_)
 			: p(p_), size(size_), accum_value(0), grid_coord(grid_coord_) {}
 
-		void append_neighs(Cell* neigh) {
-			neighs.push_back(neigh);
-
-			//for (Cell* neigh_neigh : neigh->nearest_neighs) {
-			//	if (std::find(neighs.begin(), neighs.end(), neigh_neigh) == neighs.end())
-			//		neighs.push_back(neigh_neigh);
-			//}
-		}
-
 		cv::Point2i p;
 		cv::Point2i grid_coord;
 
@@ -31,22 +22,22 @@ namespace cross_algo {
 		std::vector<int> growing_points_sets_idxs;
 
 		//neighbours
-		std::vector<Cell*> neighs;
-		std::vector<Cell*> nearest_neighs;
+		std::vector<std::shared_ptr<Cell>> neighs;
+		std::vector<std::shared_ptr<Cell>> nearest_neighs;
 	};
 
 
-	using grid_t = std::vector<std::vector<Cell>>;
+	using grid_t = std::vector<std::vector<shared_ptr<Cell>>>;
 
 	void draw_grid(const grid_t& grid, const cv::Mat& img) {
 		for (const auto& grid_str : grid) {
 			int x = 0;
 			for (const auto& grid_elem : grid_str) {
-				cv::rectangle(img, grid_elem.p, cv::Point(grid_elem.p.x + grid_elem.size, grid_elem.p.y + grid_elem.size), Scalar(200));
-				char s[10];
-				sprintf(s, "%d", x);
-				cv::putText(img, s, cv::Point(grid_elem.p.x + grid_elem.size / 2, grid_elem.p.y + grid_elem.size / 2), FONT_HERSHEY_PLAIN, 0.5, Scalar(200));
-				x++;
+				cv::rectangle(img, grid_elem->p, cv::Point(grid_elem->p.x + grid_elem->size, grid_elem->p.y + grid_elem->size), Scalar(200));
+				//char s[10];
+				//sprintf(s, "%d", x);
+				//cv::putText(img, s, cv::Point(grid_elem->p.x + grid_elem->size / 2, grid_elem->p.y + grid_elem->size / 2), FONT_HERSHEY_PLAIN, 0.5, Scalar(200));
+				//x++;
 			}
 		}
 	}
@@ -56,13 +47,12 @@ namespace cross_algo {
 
 		int cur_y = 0;
 		for (int x = 0, prev_count = 0; x + min_size < w; x += min_size, prev_count++)
-			res[0].push_back(Cell(cv::Point2i(x, cur_y), cv::Point2i(res[0].size(), 0), min_size));
+			res[0].push_back(std::make_shared<Cell>(cv::Point2i(x, cur_y), cv::Point2i(res[0].size(), 0), min_size));
 
 		cur_y += min_size;
-		int prev_count = res[0].size();
 		int cur_size = min_size;
 		while (true) {
-			std::vector<Cell> cur_cells;
+			std::vector<shared_ptr<Cell>> cur_cells;
 			int prev_size = cur_size;
 			cur_size = min_size + (float(max_size) - min_size) / (h - max_size) * cur_y;
 
@@ -71,141 +61,165 @@ namespace cross_algo {
 
 			for (int x = 0; x + cur_size < w; x += cur_size)
 			{
-				Cell new_cell(cv::Point2i(x, cur_y), cv::Point2i(cur_cells.size(), res.size()), cur_size);
+				std::shared_ptr<Cell> new_cell = std::make_shared<Cell>(cv::Point2i(x, cur_y), cv::Point2i(cur_cells.size(), res.size()), cur_size);
 
 				//find neighs
 				int center_neigh_x = round(float(x) / prev_size);
 
 				//has left neigh
 				if (center_neigh_x > 0)
-					new_cell.nearest_neighs.push_back(&res[res.size() - 1][center_neigh_x - 1]);
+					new_cell->nearest_neighs.push_back(res[res.size() - 1][center_neigh_x - 1]);
 
 				//has center neigh
-				if (center_neigh_x < prev_count)
-					new_cell.nearest_neighs.push_back(&res[res.size() - 1][center_neigh_x]);
+				if (center_neigh_x < res[res.size() - 1].size())
+					new_cell->nearest_neighs.push_back(res[res.size() - 1][center_neigh_x]);
 
 				//has right neigh
-				if (center_neigh_x + 1 < prev_count)
-					new_cell.nearest_neighs.push_back(&res[res.size() - 1][center_neigh_x + 1]);
+				if (center_neigh_x + 1 < res[res.size() - 1].size())
+					new_cell->nearest_neighs.push_back(res[res.size() - 1][center_neigh_x + 1]);
 
-				for (Cell* new_neigh : new_cell.nearest_neighs) {
-					new_cell.append_neighs(new_neigh);
+				for (std::shared_ptr<Cell> new_neigh : new_cell->nearest_neighs) {
+					new_cell->neighs.push_back(new_neigh);
 				}
 
 				cur_cells.emplace_back(new_cell);
 			}
 
-			prev_count = cur_cells.size();
 			cur_y += cur_size;
-			res.emplace_back(cur_cells);
+			res.push_back(cur_cells);
 		}
 
 		return res;
 	}
 
-	using growing_point_sets_t = std::vector<std::vector<Cell>>;
+	using growing_point_sets_t = std::vector<std::vector<std::shared_ptr<Cell>>>;
 
 	void draw_growing_point_sets(const growing_point_sets_t grow_point_sets, const cv::Mat& img) {
 		for (const auto& set : grow_point_sets) {
+			Scalar color = Scalar(0);//rand() % 255, rand() % 255, rand() % 255);
 			for (const auto& cell : set) {
-				cv::rectangle(img, cell.p, cv::Point(cell.p.x + cell.size, cell.p.y + cell.size), Scalar(0,0, 0));
+				cv::rectangle(img, cell->p, cv::Point(cell->p.x + cell->size, cell->p.y + cell->size), color, -1);
 			}
 		}
 	}
 
-
-	int dist_between_rails(int y) {
-		return 40 + 0.3 * y;
+	void draw_crosses(const std::vector<Point>& crosses, const cv::Mat& img) {
+		for (const auto& cur_cross : crosses) {
+			cv::circle(img, cur_cross, 5, Scalar(0, 255, 0), 5);
+		}
 	}
 
-	void correct_rails(grid_t& grid, growing_point_sets_t& growing_point_sets, const cv::Mat& img) {
-		const int min_grow_points_count = 5;
+	std::vector<Point> get_cross_result(grid_t& grid) {
+		std::vector<Point> res;
 
-		//find lost rails by duplicating founded growing_points as parallel
-		for (const auto& growing_points : growing_point_sets) {
-			if (growing_points.size() < min_grow_points_count)
-				continue;
+		std::vector<std::pair<int, int>> prev_row_rails_x;
+		std::vector<std::pair<int, int>> cur_row_rails_x;
 
-			//check is it left or rigth rail on track
-			int r_count = 0;
-			int l_count = 0;
-
-			for (int k = 1; k < min_grow_points_count - 1; k++) {
-				Cell cur_cell = growing_points[k];
-
-				int xr = dist_between_rails(cur_cell.p.y) + cur_cell.p.x;
-				int xl = cur_cell.p.x - dist_between_rails(cur_cell.p.y);
-
-				int xr_idx = -1;
-				int xl_idx = -1;
-
-				if (xr < img.cols)
-					xr_idx = xr / cur_cell.size;
-				if (xl > 0)
-					xl_idx = xl / cur_cell.size;
-
-				int y_idx = cur_cell.grid_coord.y;
-				if ((xr_idx != -1 && grid[y_idx][xr_idx].accum_value > 0) || (xr < img.cols - 1 && grid[y_idx][xr_idx + 1].accum_value > 0) || 
-					(xr > 0 && grid[y_idx][xr_idx - 1].accum_value > 0)) {
-					r_count++;
-				}
-
-				if ((xl_idx != -1 && grid[y_idx][xl_idx].accum_value > 0) || (xl < img.cols - 1 && grid[y_idx][xl_idx + 1].accum_value > 0) ||
-					(xl > 0 && grid[y_idx][xl_idx - 1].accum_value > 0)) {
-					l_count++;
-				}
-			}
-
-			bool is_left_rail = r_count > l_count;
-
-			for (int k = 1; k < growing_points.size(); k++) {
-				Cell cur_cell = growing_points[k];
-
-				int x = is_left_rail ? dist_between_rails(cur_cell.p.y) + cur_cell.p.x : cur_cell.p.x - dist_between_rails(cur_cell.p.y);
-
-				if (x < img.cols && x > 0)
+		for (int y = grid.size() - 2; y >= 0; y--) {
+			std::vector<std::shared_ptr<Cell>>& grid_row = grid[y];
+			cur_row_rails_x.clear();
+			for (int x = 0; x < grid_row.size(); x++) {
+				if (grid_row[x]->accum_value != 0)
 				{
-					int x_idx = x / cur_cell.size;
-					int y_idx = cur_cell.grid_coord.y;
-					grid[y_idx][x_idx].accum_value++;
-					cv::rectangle(img, grid[y_idx][x_idx].p,
-						cv::Point(grid[y_idx][x_idx].p.x + grid[y_idx][x_idx].size, grid[y_idx][x_idx].p.y + grid[y_idx][x_idx].size),
-						Scalar(0, 0, 255), -1);
+					int start_x = x;
+					x++;
+					while (x < grid_row.size() && grid_row[x]->accum_value != 0)
+						x++;
+
+					int center_x = (x + start_x) / 2;
+					cur_row_rails_x.push_back(std::pair<int, int>(center_x, 0));
 				}
 			}
+
+			//need to check intersection?
+			if (prev_row_rails_x.size() > 0)
+			{
+				//has intersection
+				if (prev_row_rails_x.size() > cur_row_rails_x.size())
+				{
+					int intersection_x = -1;
+					const int epsilon = 4;
+					//find intersection point
+					for (const auto& prev_row_elem : prev_row_rails_x)
+					{
+						for (auto& cur_row_elem : cur_row_rails_x)
+						{
+							if (abs(cur_row_elem.first - prev_row_elem.first) < epsilon)
+							{
+								cur_row_elem.second++;
+								if (cur_row_elem.second > 1) {
+									intersection_x = cur_row_elem.first;
+									break;
+								}
+							}
+						}
+					}
+					res.push_back(Point(intersection_x * grid_row[0]->size, grid_row[0]->p.y - grid_row[0]->size));
+				}
+				if (prev_row_rails_x.size() < cur_row_rails_x.size())
+				{
+					int intersection_x = -1;
+					const int epsilon = 4;
+					//find intersection point
+					for (auto& cur_row_elem : cur_row_rails_x)
+					{
+						for (auto& prev_row_elem : prev_row_rails_x)
+						{
+							if (abs(cur_row_elem.first - prev_row_elem.first) < epsilon)
+							{
+								prev_row_elem.second++;
+								if (prev_row_elem.second > 1) {
+									intersection_x = prev_row_elem.first;
+									break;
+								}
+							}
+						}
+					}
+					res.push_back(Point(intersection_x * grid_row[0]->size, grid_row[0]->p.y - grid_row[0]->size));
+				}
+			}
+
+			//copy current row rail to prev rails vec
+			prev_row_rails_x.clear();
+			prev_row_rails_x.resize(cur_row_rails_x.size());
+			for (auto& cur_row_elem : cur_row_rails_x)
+			{
+				cur_row_elem.second = 0;
+			}
+			std::copy(cur_row_rails_x.begin(), cur_row_rails_x.end(), prev_row_rails_x.begin());
 		}
+
+		return res;
 	}
-
-
 	
 	growing_point_sets_t growing_up(const std::vector<cv::Mat>& integral_images, const cv::Mat& img, grid_t& grid) {
 		const int min_grid_size = 2;
 		const int max_grid_size = 22;
-		const double treashhold = 1.5;
-		const double vertical_edge_treashhold = 0.65;
-		const double horizontal_edge_treashhold = 0.4;
+		const double hog_chi_square_treashhold = 1.5;
+		const double vertical_edge_treashhold = 0.8;
+		const double horizontal_edge_treashhold = 0.5;
 
 		//why integral image size more than image size?????
 		grid = generate_grid(min_grid_size, max_grid_size, integral_images[0].cols, integral_images[0].rows);
 		draw_grid(grid, img);
 
-		std::vector<Cell> seeds = grid[grid.size() - 1];
+		std::vector<std::shared_ptr<Cell>>& seeds = grid[grid.size() - 1];
 		growing_point_sets_t growing_point_sets(seeds.size());
 		for (int i = 0; i < seeds.size(); i++) {
-			std::vector<Cell>& cur_growing_points = growing_point_sets[i];
-			seeds[i].accum_value++;
+			std::vector<std::shared_ptr<Cell>>& cur_growing_points = growing_point_sets[i];
+			seeds[i]->accum_value++;
 			cur_growing_points.push_back(seeds[i]);
-			seeds[i].growing_points_sets_idxs.push_back(i);
+			seeds[i]->growing_points_sets_idxs.push_back(i);
 
 			int start = 0, end = 0;
 			while (start <= end) {
-				if (cur_growing_points[start].hog_vec.empty())
-					cur_growing_points[start].hog_vec = support::get_hog(cur_growing_points[start].p, cur_growing_points[start].size, integral_images);
+				if (cur_growing_points[start]->hog_vec.empty())
+					cur_growing_points[start]->hog_vec = support::get_hog(cur_growing_points[start]->p, cur_growing_points[start]->size, integral_images);
 
-				for (Cell* neigh : cur_growing_points[start].neighs) {
-					//if neigh exist and it doesn't contains in current growing_points
-					if (neigh != nullptr && neigh->accum_value == 0) 
-						//std::find(neigh->growing_points_sets_idxs.begin(), neigh->growing_points_sets_idxs.end(), i) == neigh->growing_points_sets_idxs.end())
+				for (int q = 0; q < cur_growing_points[start]->neighs.size(); q++)
+				{
+					std::shared_ptr<Cell> neigh = cur_growing_points[start]->neighs[q];
+					if (neigh != nullptr && neigh->accum_value == 0)
 					{
 						if (neigh->hog_vec.empty())
 							neigh->hog_vec = support::get_hog(neigh->p, neigh->size, integral_images);
@@ -213,7 +227,7 @@ namespace cross_algo {
 						//ignore horizontal edges
 						if (neigh->hog_vec[2] > horizontal_edge_treashhold || neigh->hog_vec[6] > horizontal_edge_treashhold)
 							continue;
-						
+
 						//ignore not vertical edges
 						const double vertical_mul = 0.9;
 						if (neigh->hog_vec[0] > vertical_edge_treashhold || neigh->hog_vec[4] > vertical_edge_treashhold ||
@@ -223,19 +237,19 @@ namespace cross_algo {
 						else
 							continue;
 
-						double intersection = support::intersect_hogs(cur_growing_points[start].hog_vec, neigh->hog_vec);
-						//double chi_squared = support::chi_squared(cur_growing_points[start].hog_vec, neigh->hog_vec);
-						if (intersection > treashhold)
+						//double intersection = support::intersect_hogs(cur_growing_points[start].hog_vec, neigh->hog_vec);
+						double chi_squared = support::chi_squared(cur_growing_points[start]->hog_vec, neigh->hog_vec);
+						if (chi_squared < hog_chi_square_treashhold)
 						{
 							neigh->accum_value++;
-							cur_growing_points.push_back(*neigh);
+							cur_growing_points.push_back(neigh);
 							neigh->growing_points_sets_idxs.push_back(i);
-							cv::line(img, Point(cur_growing_points[start].p.x + cur_growing_points[start].size / 2,
-								cur_growing_points[start].p.y + cur_growing_points[start].size / 2),
-								Point(neigh->p.x + neigh->size / 2,
-									neigh->p.y + neigh->size / 2), Scalar(0, 0, 255));
+							//cv::line(img, Point(cur_growing_points[start].p.x + cur_growing_points[start].size / 2,
+							//	cur_growing_points[start].p.y + cur_growing_points[start].size / 2),
+							//	Point(neigh->p.x + neigh->size / 2,
+							//		neigh->p.y + neigh->size / 2), Scalar(0, 0, 255));
 							end++;
-						}		
+						}
 					}
 				}
 				start++;
@@ -245,14 +259,14 @@ namespace cross_algo {
 		//remove same rails
 		int cur_size = growing_point_sets.size();
 		for (int i = 0; i < cur_size - 1; i++) {
-			if (growing_point_sets[i + 1].size() == growing_point_sets[i].size() || growing_point_sets[i].size() == 1) {
+			if (growing_point_sets[i + 1].size() == growing_point_sets[i].size() || growing_point_sets[i].size() < 5) {
 				growing_point_sets.erase(growing_point_sets.begin() + i);
 				cur_size--;
 				i--;
 			}
 		}
 
-		if (growing_point_sets[cur_size - 1].size() == 1)
+		if (growing_point_sets[cur_size - 1].size() < 5)
 			growing_point_sets.erase(growing_point_sets.begin() + cur_size - 1);
 
 		return growing_point_sets;
