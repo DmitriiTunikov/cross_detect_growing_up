@@ -191,13 +191,30 @@ namespace cross_algo {
 
 		return res;
 	}
+
+	bool hog_has_vertical_edge(const support::hog_vec_t& hog_vec) {
+		const double vertical_edge_treashhold = 0.8;
+		const double horizontal_edge_treashhold = 0.5;
+
+		//ignore horizontal edges
+		if (hog_vec[2] > horizontal_edge_treashhold || hog_vec[6] > horizontal_edge_treashhold)
+			return false;
+
+		//ignore not vertical edges
+		const double vertical_mul = 0.9;
+		if (hog_vec[0] > vertical_edge_treashhold || hog_vec[4] > vertical_edge_treashhold ||
+			hog_vec[1] * vertical_mul > vertical_edge_treashhold || hog_vec[3] * vertical_mul > vertical_edge_treashhold ||
+			hog_vec[5] * vertical_mul > vertical_edge_treashhold || hog_vec[7] * vertical_mul > vertical_edge_treashhold)
+			return true;
+		else
+			return false;
+
+	}
 	
 	growing_point_sets_t growing_up(const std::vector<cv::Mat>& integral_images, const cv::Mat& img, grid_t& grid) {
 		const int min_grid_size = 2;
 		const int max_grid_size = 22;
 		const double hog_chi_square_treashhold = 1.5;
-		const double vertical_edge_treashhold = 0.8;
-		const double horizontal_edge_treashhold = 0.5;
 
 		//why integral image size more than image size?????
 		grid = generate_grid(min_grid_size, max_grid_size, integral_images[0].cols, integral_images[0].rows);
@@ -216,6 +233,12 @@ namespace cross_algo {
 				if (cur_growing_points[start]->hog_vec.empty())
 					cur_growing_points[start]->hog_vec = support::get_hog(cur_growing_points[start]->p, cur_growing_points[start]->size, integral_images);
 
+				if (!hog_has_vertical_edge(cur_growing_points[start]->hog_vec))
+				{
+					start++;
+					continue;
+				}
+					
 				for (int q = 0; q < cur_growing_points[start]->neighs.size(); q++)
 				{
 					std::shared_ptr<Cell> neigh = cur_growing_points[start]->neighs[q];
@@ -224,17 +247,7 @@ namespace cross_algo {
 						if (neigh->hog_vec.empty())
 							neigh->hog_vec = support::get_hog(neigh->p, neigh->size, integral_images);
 
-						//ignore horizontal edges
-						if (neigh->hog_vec[2] > horizontal_edge_treashhold || neigh->hog_vec[6] > horizontal_edge_treashhold)
-							continue;
-
-						//ignore not vertical edges
-						const double vertical_mul = 0.9;
-						if (neigh->hog_vec[0] > vertical_edge_treashhold || neigh->hog_vec[4] > vertical_edge_treashhold ||
-							neigh->hog_vec[1] * vertical_mul > vertical_edge_treashhold || neigh->hog_vec[3] * vertical_mul > vertical_edge_treashhold ||
-							neigh->hog_vec[5] * vertical_mul > vertical_edge_treashhold || neigh->hog_vec[7] * vertical_mul > vertical_edge_treashhold)
-							;
-						else
+						if (!hog_has_vertical_edge(neigh->hog_vec))
 							continue;
 
 						//double intersection = support::intersect_hogs(cur_growing_points[start].hog_vec, neigh->hog_vec);
