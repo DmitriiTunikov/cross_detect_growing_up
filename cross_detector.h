@@ -10,20 +10,29 @@ namespace cross_algo {
 	public:
 		Cell() {}
 
-		Cell(const cv::Point2i& p_, const cv::Point2i& grid_coord_, const int& size_, Cell* left_ = nullptr, Cell* center_ = nullptr, Cell* right_ = nullptr)
-			: p(p_), size(size_), left(left_), right(right_), center(center_), accum_value(0), grid_coord(grid_coord_) {}
+		Cell(const cv::Point2i& p_, const cv::Point2i& grid_coord_, const int& size_)
+			: p(p_), size(size_), accum_value(0), grid_coord(grid_coord_) {}
+
+		void append_neighs(Cell* neigh) {
+			neighs.push_back(neigh);
+
+			//for (Cell* neigh_neigh : neigh->nearest_neighs) {
+			//	if (std::find(neighs.begin(), neighs.end(), neigh_neigh) == neighs.end())
+			//		neighs.push_back(neigh_neigh);
+			//}
+		}
 
 		cv::Point2i p;
 		cv::Point2i grid_coord;
+
 		int size;
 		int accum_value;
 		support::hog_vec_t hog_vec;
 		std::vector<int> growing_points_sets_idxs;
 
 		//neighbours
-		Cell* left;
-		Cell* right;
-		Cell* center;
+		std::vector<Cell*> neighs;
+		std::vector<Cell*> nearest_neighs;
 	};
 
 
@@ -66,15 +75,22 @@ namespace cross_algo {
 
 				//find neighs
 				int center_neigh_x = round(float(x) / prev_size);
-				if (center_neigh_x < prev_count)
-					new_cell.center = &res[res.size() - 1][center_neigh_x];
 
 				//has left neigh
 				if (center_neigh_x > 0)
-					new_cell.left = &res[res.size() - 1][center_neigh_x - 1];
+					new_cell.nearest_neighs.push_back(&res[res.size() - 1][center_neigh_x - 1]);
+
+				//has center neigh
+				if (center_neigh_x < prev_count)
+					new_cell.nearest_neighs.push_back(&res[res.size() - 1][center_neigh_x]);
+
 				//has right neigh
-				if (center_neigh_x  + 1 < prev_count)
-					new_cell.right = &res[res.size() - 1][center_neigh_x + 1];
+				if (center_neigh_x + 1 < prev_count)
+					new_cell.nearest_neighs.push_back(&res[res.size() - 1][center_neigh_x + 1]);
+
+				for (Cell* new_neigh : new_cell.nearest_neighs) {
+					new_cell.append_neighs(new_neigh);
+				}
 
 				cur_cells.emplace_back(new_cell);
 			}
@@ -92,7 +108,7 @@ namespace cross_algo {
 	void draw_growing_point_sets(const growing_point_sets_t grow_point_sets, const cv::Mat& img) {
 		for (const auto& set : grow_point_sets) {
 			for (const auto& cell : set) {
-				cv::rectangle(img, cell.p, cv::Point(cell.p.x + cell.size, cell.p.y + cell.size), Scalar(0,0, 0), -1);
+				cv::rectangle(img, cell.p, cv::Point(cell.p.x + cell.size, cell.p.y + cell.size), Scalar(0,0, 0));
 			}
 		}
 	}
@@ -166,7 +182,8 @@ namespace cross_algo {
 		const int min_grid_size = 2;
 		const int max_grid_size = 22;
 		const double treashhold = 1.5;
-		const double edge_treashhold = 0.65;
+		const double vertical_edge_treashhold = 0.65;
+		const double horizontal_edge_treashhold = 0.4;
 
 		//why integral image size more than image size?????
 		grid = generate_grid(min_grid_size, max_grid_size, integral_images[0].cols, integral_images[0].rows);
@@ -185,21 +202,25 @@ namespace cross_algo {
 				if (cur_growing_points[start].hog_vec.empty())
 					cur_growing_points[start].hog_vec = support::get_hog(cur_growing_points[start].p, cur_growing_points[start].size, integral_images);
 
-				std::vector<Cell*> neighs{ cur_growing_points[start].left, cur_growing_points[start].center, cur_growing_points[start].right };
-				for (Cell* neigh : neighs) {
+				for (Cell* neigh : cur_growing_points[start].neighs) {
 					//if neigh exist and it doesn't contains in current growing_points
-					if (neigh != nullptr && 
-						std::find(neigh->growing_points_sets_idxs.begin(), neigh->growing_points_sets_idxs.end(), i) == neigh->growing_points_sets_idxs.end())
+					if (neigh != nullptr && neigh->accum_value == 0) 
+						//std::find(neigh->growing_points_sets_idxs.begin(), neigh->growing_points_sets_idxs.end(), i) == neigh->growing_points_sets_idxs.end())
 					{
 						if (neigh->hog_vec.empty())
 							neigh->hog_vec = support::get_hog(neigh->p, neigh->size, integral_images);
 
 						//ignore horizontal edges
-						if (neigh->hog_vec[2] > edge_treashhold || neigh->hog_vec[6] > edge_treashhold)
+						if (neigh->hog_vec[2] > horizontal_edge_treashhold || neigh->hog_vec[6] > horizontal_edge_treashhold)
 							continue;
 						
 						//ignore not vertical edges
-						if (neigh->hog_vec[0] < edge_treashhold && neigh->hog_vec[6] < edge_treashhold)
+						const double vertical_mul = 0.9;
+						if (neigh->hog_vec[0] > vertical_edge_treashhold || neigh->hog_vec[4] > vertical_edge_treashhold ||
+							neigh->hog_vec[1] * vertical_mul > vertical_edge_treashhold || neigh->hog_vec[3] * vertical_mul > vertical_edge_treashhold ||
+							neigh->hog_vec[5] * vertical_mul > vertical_edge_treashhold || neigh->hog_vec[7] * vertical_mul > vertical_edge_treashhold)
+							;
+						else
 							continue;
 
 						double intersection = support::intersect_hogs(cur_growing_points[start].hog_vec, neigh->hog_vec);
@@ -209,6 +230,10 @@ namespace cross_algo {
 							neigh->accum_value++;
 							cur_growing_points.push_back(*neigh);
 							neigh->growing_points_sets_idxs.push_back(i);
+							cv::line(img, Point(cur_growing_points[start].p.x + cur_growing_points[start].size / 2,
+								cur_growing_points[start].p.y + cur_growing_points[start].size / 2),
+								Point(neigh->p.x + neigh->size / 2,
+									neigh->p.y + neigh->size / 2), Scalar(0, 0, 255));
 							end++;
 						}		
 					}
