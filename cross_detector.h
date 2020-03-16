@@ -1,6 +1,7 @@
 #pragma once
 #include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
+#include <algorithm>
 #include "support.h"
 
 namespace cross_algo {
@@ -17,6 +18,7 @@ namespace cross_algo {
 		int size;
 		int accum_value;
 		support::hog_vec_t hog_vec;
+		std::vector<int> growing_points_sets_idxs;
 
 		//neighbours
 		Cell* left;
@@ -50,10 +52,13 @@ namespace cross_algo {
 		cur_y += min_size;
 		int prev_count = res[0].size();
 		int cur_size = min_size;
-		while (cur_y + cur_size < h) {
+		while (true) {
 			std::vector<Cell> cur_cells;
 			int prev_size = cur_size;
 			cur_size = min_size + (float(max_size) - min_size) / (h - max_size) * cur_y;
+
+			if (cur_size + cur_y > h)
+				break;
 
 			for (int x = 0; x + cur_size < w; x += cur_size)
 			{
@@ -87,8 +92,7 @@ namespace cross_algo {
 	void draw_growing_point_sets(const growing_point_sets_t grow_point_sets, const cv::Mat& img) {
 		for (const auto& set : grow_point_sets) {
 			for (const auto& cell : set) {
-				if (cell.accum_value < 2)
-					cv::rectangle(img, cell.p, cv::Point(cell.p.x + cell.size, cell.p.y + cell.size), Scalar(0,0, 0), -1);
+				cv::rectangle(img, cell.p, cv::Point(cell.p.x + cell.size, cell.p.y + cell.size), Scalar(0,0, 0), -1);
 			}
 		}
 	}
@@ -174,6 +178,7 @@ namespace cross_algo {
 			std::vector<Cell>& cur_growing_points = growing_point_sets[i];
 			seeds[i].accum_value++;
 			cur_growing_points.push_back(seeds[i]);
+			seeds[i].growing_points_sets_idxs.push_back(i);
 
 			int start = 0, end = 0;
 			while (start <= end) {
@@ -182,11 +187,10 @@ namespace cross_algo {
 
 				std::vector<Cell*> neighs{ cur_growing_points[start].left, cur_growing_points[start].center, cur_growing_points[start].right };
 				for (Cell* neigh : neighs) {
-					if (neigh != nullptr)
+					//if neigh exist and it doesn't contains in current growing_points
+					if (neigh != nullptr && 
+						std::find(neigh->growing_points_sets_idxs.begin(), neigh->growing_points_sets_idxs.end(), i) == neigh->growing_points_sets_idxs.end())
 					{
-						if (neigh->size < 6)
-							continue;
-
 						if (neigh->hog_vec.empty())
 							neigh->hog_vec = support::get_hog(neigh->p, neigh->size, integral_images);
 
@@ -203,9 +207,8 @@ namespace cross_algo {
 						if (intersection > treashhold)
 						{
 							neigh->accum_value++;
-							if (neigh->accum_value > 1)
-								cv::rectangle(img, neigh->p, cv::Point(neigh->p.x + neigh->size, neigh->p.y + neigh->size), Scalar(0, 255, 0));
 							cur_growing_points.push_back(*neigh);
+							neigh->growing_points_sets_idxs.push_back(i);
 							end++;
 						}		
 					}
@@ -213,6 +216,19 @@ namespace cross_algo {
 				start++;
 			}
 		}
+
+		//remove same rails
+		int cur_size = growing_point_sets.size();
+		for (int i = 0; i < cur_size - 1; i++) {
+			if (growing_point_sets[i + 1].size() == growing_point_sets[i].size() || growing_point_sets[i].size() == 1) {
+				growing_point_sets.erase(growing_point_sets.begin() + i);
+				cur_size--;
+				i--;
+			}
+		}
+
+		if (growing_point_sets[cur_size - 1].size() == 1)
+			growing_point_sets.erase(growing_point_sets.begin() + cur_size - 1);
 
 		return growing_point_sets;
 	}
