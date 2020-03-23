@@ -46,7 +46,7 @@ private:
 	void draw_crosses(const std::vector<Point>& crosses);
 
 	//algo functions
-	void generate_grid(int min_size, int max_size);
+	void generate_grid(int max_size);
 	std::vector<Point> get_cross_result();
 
 	void get_intersection_point(std::vector<Point>& res, std::vector<std::pair<int, int>>& big_vec,

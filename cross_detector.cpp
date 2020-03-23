@@ -19,52 +19,24 @@ std::vector<Point> CrossDetector::detect_crosses(bool need_to_draw_grid)
 	return cross_res;
 }
 
-void CrossDetector::generate_grid(int min_size, int max_size) {
-	m_grid.resize(1);
+void CrossDetector::generate_grid(int max_size) {
+	int low_h = (double(4)/5) * m_img.rows;
 
-	int cur_y = 0;
-	for (int x = 0, prev_count = 0; x + min_size < m_img.cols; x += min_size, prev_count++)
-		m_grid[0].push_back(std::make_shared<Cell>(cv::Point2i(x, cur_y), cv::Point2i(m_grid[0].size(), 0), min_size));
+	double a = double(max_size) / (low_h  - max_size);
 
-	cur_y += min_size;
-	int cur_size = min_size;
-	while (true) {
-		std::vector<shared_ptr<Cell>> cur_cells;
-		int prev_size = cur_size;
-		cur_size = min_size + (float(max_size) - min_size) / (m_img.rows - max_size) * cur_y;
-
-		if (cur_size + cur_y > m_img.rows)
-			break;
-
+	int cur_size = max_size;
+	int cur_y = m_img.rows;
+	for (int i = 0; cur_y - cur_size >= 0 && cur_size > 1; i++)
+	{
+		cur_size = abs(low_h * a / ((1 + a * i) * (1 + a * i + a)));
+		m_grid.emplace_back();
 		for (int x = 0; x + cur_size < m_img.cols; x += cur_size)
 		{
-			std::shared_ptr<Cell> new_cell = std::make_shared<Cell>(cv::Point2i(x, cur_y), cv::Point2i(cur_cells.size(), m_grid.size()), cur_size);
-
-			//find neighs
-			int center_neigh_x = round(float(x) / prev_size);
-
-			//has left neigh
-			if (center_neigh_x > 0)
-				new_cell->nearest_neighs.push_back(m_grid[m_grid.size() - 1][center_neigh_x - 1]);
-
-			//has center neigh
-			if (center_neigh_x < m_grid[m_grid.size() - 1].size())
-				new_cell->nearest_neighs.push_back(m_grid[m_grid.size() - 1][center_neigh_x]);
-
-			//has right neigh
-			if (center_neigh_x + 1 < m_grid[m_grid.size() - 1].size())
-				new_cell->nearest_neighs.push_back(m_grid[m_grid.size() - 1][center_neigh_x + 1]);
-
-			for (std::shared_ptr<Cell> new_neigh : new_cell->nearest_neighs) {
-				new_cell->neighs.push_back(new_neigh);
-			}
-
-			cur_cells.emplace_back(new_cell);
+			m_grid[i].push_back(std::make_shared<Cell>(cv::Point2i(x, cur_y), cv::Point2i(m_grid[i].size(), i), cur_size));
 		}
-
-		cur_y += cur_size;
-		m_grid.push_back(cur_cells);
+		cur_y -= cur_size;
 	}
+
 }
 
 void CrossDetector::get_intersection_point(std::vector<Point>& res, std::vector<std::pair<int, int>>& big_vec,
@@ -136,13 +108,10 @@ std::vector<Point> CrossDetector::get_cross_result() {
 
 
 CrossDetector::growing_point_sets_t CrossDetector::growing_up() {
-	const int min_grid_size = 2;
-	const int max_grid_size = 22;
 	const double hog_chi_square_treashhold = 1.5;
 
-	//why integral image size more than image size?????
-	generate_grid(min_grid_size, max_grid_size);
-
+	generate_grid(20);
+	return growing_point_sets_t();
 	std::vector<std::shared_ptr<Cell>>& seeds = m_grid[m_grid.size() - 1];
 	growing_point_sets_t growing_point_sets(seeds.size());
 	for (int i = 0; i < seeds.size(); i++) {

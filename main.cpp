@@ -10,27 +10,27 @@ using namespace std;
 
 int main(int argc, char** argv) {
 	std::string file_name = "C:\\Users\\dimat\\Downloads\\cross_detect_data_set_src\\img0002.jpg";
-	if (argc < 2)
-	{
-		std::cout << "Wrong arguments count, program accept one argument: " <<
-			"path to input file, for example: C:\\Users\\dimat\\Downloads\\cross_detect_data_set_src\\img0002.jpg" << std::endl;
-
-		return -1;
-	}
-	else
-		file_name = std::string(argv[1]);
+	//if (argc < 2)
+	//{
+	//	std::cout << "Wrong arguments count, program accept one argument: " <<
+	//		"path to input file, for example: C:\\Users\\dimat\\Downloads\\cross_detect_data_set_src\\img0002.jpg" << std::endl;
+	//
+	//	return -1;
+	//}
+	//else
+	//	file_name = std::string(argv[1]);
 
 	Mat image, gray_img;
-	image = imread(file_name, IMREAD_COLOR);   // Read the file
-	if (!image.data)                              // Check for invalid input
+	image = imread(file_name, IMREAD_COLOR);   
+	if (!image.data)                            
 	{
 		cout << "Could not open or find input file" << endl;
 		return -1;
 	}
 
 	//crop 1/5 part of image
-	cv::Rect myROI(Point(0, image.rows / 5), Point(image.cols, image.rows));
-	image = image(myROI);
+	//cv::Rect myROI(Point(0, image.rows / 5), Point(image.cols, image.rows));
+	//image = image(myROI);
 
 	cv::cvtColor(image, gray_img, COLOR_BGR2GRAY);
 
