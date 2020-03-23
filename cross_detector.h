@@ -50,7 +50,7 @@ private:
 	std::vector<Point> get_cross_result();
 
 	void get_intersection_point(std::vector<Point>& res, std::vector<std::pair<int, int>>& big_vec,
-		std::vector<std::pair<int, int>>& small_vec, std::shared_ptr<Cell> cell);
+		std::vector<std::pair<int, int>>& small_vec, std::shared_ptr<Cell> cell, bool from_big_to_small_count);
 
 	growing_point_sets_t growing_up();
 };

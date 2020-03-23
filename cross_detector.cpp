@@ -68,25 +68,27 @@ void CrossDetector::generate_grid(int min_size, int max_size) {
 }
 
 void CrossDetector::get_intersection_point(std::vector<Point>& res, std::vector<std::pair<int, int>>& big_vec,
-	std::vector<std::pair<int, int>>& small_vec, std::shared_ptr<Cell> cell) {
-	int intersection_x = -1;
+	std::vector<std::pair<int, int>>& small_vec, std::shared_ptr<Cell> cell, bool from_big_to_small_count) {
+	std::vector<int> intersection_xs;
 	const int epsilon = 4;
 	//find intersection point
 	for (auto& cur_big_vec_elem : big_vec)
 	{
-		for (auto& prev_small_vec_elem : small_vec)
+		for (auto& cur_small_vec_elem : small_vec)
 		{
-			if (abs(cur_big_vec_elem.first - prev_small_vec_elem.first) < epsilon)
+			if (abs(cur_big_vec_elem.first - cur_small_vec_elem.first) < epsilon)
 			{
-				prev_small_vec_elem.second++;
-				if (prev_small_vec_elem.second > 1) {
-					intersection_x = prev_small_vec_elem.first;
-					break;
+				cur_small_vec_elem.second++;
+				if (cur_small_vec_elem.second > 1) {
+					intersection_xs.push_back(cur_small_vec_elem.first);
 				}
 			}
 		}
 	}
-	res.push_back(Point(intersection_x * cell->size, cell->p.y - cell->size));
+
+	int y_move = from_big_to_small_count ? -cell->size * 4 : cell->size * 4;
+	for (int& inter_x : intersection_xs)
+		res.push_back(Point(inter_x * cell->size + cell->size / 2, cell->p.y + y_move));
 }
 
 std::vector<Point> CrossDetector::get_cross_result() {
@@ -103,9 +105,15 @@ std::vector<Point> CrossDetector::get_cross_result() {
 			{
 				int start_x = x;
 				x++;
-				while (x < grid_row.size() && grid_row[x]->accum_value != 0)
-					x++;
-
+				int empty_cells_count = 0;
+				while (x < grid_row.size())
+				{
+					if (grid_row[x]->accum_value != 0)
+						x++;
+					else if (++empty_cells_count > 1)
+						break;
+				}
+					
 				int center_x = (x + start_x) / 2;
 				cur_row_rails_x.push_back(std::pair<int, int>(center_x, 0));
 			}
@@ -116,9 +124,9 @@ std::vector<Point> CrossDetector::get_cross_result() {
 		{
 			//has intersection
 			if (prev_row_rails_x.size() > cur_row_rails_x.size())
-				get_intersection_point(res, prev_row_rails_x, cur_row_rails_x, grid_row[0]);
+				get_intersection_point(res, prev_row_rails_x, cur_row_rails_x, grid_row[0], true);
 			else if (prev_row_rails_x.size() < cur_row_rails_x.size())
-				get_intersection_point(res, cur_row_rails_x, prev_row_rails_x, grid_row[0]);
+				get_intersection_point(res, cur_row_rails_x, prev_row_rails_x, grid_row[0], false);
 		}
 
 		//copy current row rail to prev rails vec
@@ -137,7 +145,7 @@ std::vector<Point> CrossDetector::get_cross_result() {
 
 CrossDetector::growing_point_sets_t CrossDetector::growing_up() {
 	const int min_grid_size = 2;
-	const int max_grid_size = 22;
+	const int max_grid_size = 18;
 	const double hog_chi_square_treashhold = 1.5;
 
 	//why integral image size more than image size?????

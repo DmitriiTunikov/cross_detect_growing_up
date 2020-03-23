@@ -9,16 +9,16 @@ using namespace cv;
 using namespace std;
 
 int main(int argc, char** argv) {
-	std::string file_name = "C:\\Users\\dimat\\Downloads\\cross_detect_data_set_src\\img0002.jpg";
-	if (argc < 2)
-	{
-		std::cout << "Wrong arguments count, program accept one argument: " <<
-			"path to input file, for example: C:\\Users\\dimat\\Downloads\\cross_detect_data_set_src\\img0002.jpg" << std::endl;
-
-		return -1;
-	}
-	else
-		file_name = std::string(argv[1]);
+	std::string file_name = "C:\\Users\\dimat\\Downloads\\cross_detect_data_set_src\\img0004.jpg";
+	//if (argc < 2)
+	//{
+	//	std::cout << "Wrong arguments count, program accept one argument: " <<
+	//		"path to input file, for example: C:\\Users\\dimat\\Downloads\\cross_detect_data_set_src\\img0002.jpg" << std::endl;
+	//
+	//	return -1;
+	//}
+	//else
+	//	file_name = std::string(argv[1]);
 
 	Mat image, gray_img;
 	image = imread(file_name, IMREAD_COLOR);   // Read the file
