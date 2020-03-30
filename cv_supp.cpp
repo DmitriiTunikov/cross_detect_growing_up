@@ -57,24 +57,8 @@ std::vector<cv::Mat> cv_supp::get_integral_images(const cv::Mat& img) {
 	//count integral image for all bins
 	for (size_t i = 0; i < INTEGRAL_IMG_COUNT; i++)
 	{
-		res[i].at<double>(0, 0) = res_as_hist[i].at<double>(0, 0);
-
-		for (int y = 1; y < img.rows; y++)
-		{
-			res[i].at<double>(y, 0) = res[i].at<double>(y - 1, 0) + res_as_hist[i].at<double>(y, 0);
-		}
-		for (int x = 1; x < img.cols; x++)
-		{
-			res[i].at<double>(0, x) = res[i].at<double>(0, x - 1) + res_as_hist[i].at<double>(0, x);
-		}
-
-
-		for (int y = 1; y < img.rows; y++)
-			for (int x = 1; x < img.cols; x++) {
-				res[i].at<double>(y, x) = res[i].at<double>(y - 1, x) + res[i].at<double>(y, x - 1) - res[i].at<double>(y - 1, x - 1) + res_as_hist[i].at<double>(y, x);
-			}
+	    cv::integral(res_as_hist[i], res[i]);
 	}
-	//cv::integral(res_as_hist[i], res[i]);
 
 	return res;
 }

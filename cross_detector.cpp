@@ -110,7 +110,7 @@ std::vector<Point> CrossDetector::get_cross_result() {
 				{
 					if (grid_row[x]->accum_value != 0)
 						x++;
-					else if (++empty_cells_count > 1)
+					else if (++empty_cells_count > 2)
 						break;
 				}
 					
