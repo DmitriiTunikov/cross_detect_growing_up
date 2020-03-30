@@ -18,6 +18,7 @@ void CrossDetector::draw_crosses(const std::vector<Point>& crosses) {
 }
 
 void CrossDetector::draw_grid() {
+	cv::line(m_img_color, cv::Point2i(0, m_img.rows / 6), cv::Point2i(m_img.cols - 1, m_img.rows / 6), Scalar(0, 0, 255));
 	for (const auto& grid_str : m_grid) {
 		int x = 0;
 		for (const auto& grid_elem : grid_str) {
