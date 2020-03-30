@@ -1,22 +1,22 @@
 #include "cross_detector.h"
 
-std::vector<Point> CrossDetector::detect_crosses(bool need_to_draw_grid)
-{
+using namespace cv;
+
+std::vector<Point> CrossDetector::detect_crosses(bool need_to_draw_grid) {
 	//algorithm
 	m_integral_images = cv_supp::get_integral_images(m_img);
 
 	auto res_grow_up = growing_up();
 
-	if (need_to_draw_grid)
-	{
+	if (need_to_draw_grid) {
 		draw_grid();
 		draw_growing_point_sets(res_grow_up);
 	}
 	
-	std::vector<Point> cross_res = get_cross_result();
-	draw_crosses(cross_res);
+	get_cross_result();
+	draw_crosses(m_cross_res);
 
-	return cross_res;
+	return m_cross_res;
 }
 
 void CrossDetector::generate_grid(int min_size, int max_size) {
@@ -29,7 +29,7 @@ void CrossDetector::generate_grid(int min_size, int max_size) {
 	cur_y += min_size;
 	int cur_size = min_size;
 	while (true) {
-		std::vector<shared_ptr<Cell>> cur_cells;
+		std::vector<std::shared_ptr<Cell>> cur_cells;
 		int prev_size = cur_size;
 		cur_size = min_size + (float(max_size) - min_size) / (m_img.rows - max_size) * cur_y;
 
@@ -67,8 +67,8 @@ void CrossDetector::generate_grid(int min_size, int max_size) {
 	}
 }
 
-void CrossDetector::get_intersection_point(std::vector<Point>& res, std::vector<std::pair<int, int>>& big_vec,
-	std::vector<std::pair<int, int>>& small_vec, std::shared_ptr<Cell> cell, bool from_big_to_small_count) {
+void CrossDetector::get_intersection_points(std::vector<std::pair<int, int>>& big_vec,
+                                            std::vector<std::pair<int, int>>& small_vec, std::shared_ptr<Cell> cell, bool from_big_to_small_count) {
 	std::vector<int> intersection_xs;
 	const int epsilon = 4;
 	//find intersection point
@@ -88,11 +88,11 @@ void CrossDetector::get_intersection_point(std::vector<Point>& res, std::vector<
 
 	int y_move = from_big_to_small_count ? -cell->size * 4 : cell->size * 4;
 	for (int& inter_x : intersection_xs)
-		res.push_back(Point(inter_x * cell->size + cell->size / 2, cell->p.y + y_move));
+		m_cross_res.emplace_back(inter_x * cell->size + cell->size / 2, cell->p.y + y_move);
 }
 
 std::vector<Point> CrossDetector::get_cross_result() {
-	std::vector<Point> res;
+    m_cross_res.clear();
 
 	std::vector<std::pair<int, int>> prev_row_rails_x;
 	std::vector<std::pair<int, int>> cur_row_rails_x;
@@ -115,18 +115,17 @@ std::vector<Point> CrossDetector::get_cross_result() {
 				}
 					
 				int center_x = (x + start_x) / 2;
-				cur_row_rails_x.push_back(std::pair<int, int>(center_x, 0));
+				cur_row_rails_x.emplace_back(center_x, 0);
 			}
 		}
 
-		//need to check intersection?
-		if (prev_row_rails_x.size() > 0)
+		if (!prev_row_rails_x.empty())
 		{
 			//has intersection
 			if (prev_row_rails_x.size() > cur_row_rails_x.size())
-				get_intersection_point(res, prev_row_rails_x, cur_row_rails_x, grid_row[0], true);
+                get_intersection_points(prev_row_rails_x, cur_row_rails_x, grid_row[0], true);
 			else if (prev_row_rails_x.size() < cur_row_rails_x.size())
-				get_intersection_point(res, cur_row_rails_x, prev_row_rails_x, grid_row[0], false);
+                get_intersection_points( cur_row_rails_x, prev_row_rails_x, grid_row[0], false);
 		}
 
 		//copy current row rail to prev rails vec
@@ -139,7 +138,7 @@ std::vector<Point> CrossDetector::get_cross_result() {
 		std::copy(cur_row_rails_x.begin(), cur_row_rails_x.end(), prev_row_rails_x.begin());
 	}
 
-	return res;
+	return m_cross_res;
 }
 
 

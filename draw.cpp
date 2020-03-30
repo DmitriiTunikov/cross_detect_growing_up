@@ -1,6 +1,8 @@
 #include "cross_detector.h"
 
-void CrossDetector::draw_growing_point_sets(const growing_point_sets_t grow_point_sets) {
+using namespace cv;
+
+void CrossDetector::draw_growing_point_sets(const growing_point_sets_t& grow_point_sets) {
 	for (const auto& set : grow_point_sets) {
 		Scalar color = Scalar(0);//rand() % 255, rand() % 255, rand() % 255);
 		for (const auto& cell : set) {

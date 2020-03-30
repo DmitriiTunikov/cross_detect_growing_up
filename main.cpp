@@ -9,20 +9,18 @@ using namespace cv;
 using namespace std;
 
 int main(int argc, char** argv) {
-	std::string file_name = "C:\\Users\\dimat\\Downloads\\cross_detect_data_set_src\\img0004.jpg";
-	//if (argc < 2)
-	//{
-	//	std::cout << "Wrong arguments count, program accept one argument: " <<
-	//		"path to input file, for example: C:\\Users\\dimat\\Downloads\\cross_detect_data_set_src\\img0002.jpg" << std::endl;
-	//
-	//	return -1;
-	//}
-	//else
-	//	file_name = std::string(argv[1]);
+	if (argc < 2)
+	{
+		std::cout << "Wrong arguments count, program accept one argument: " <<
+			R"(path to input file, for example: C:\Users\dimat\Downloads\cross_detect_data_set_src\img0002.jpg)" << std::endl;
+
+		return -1;
+	}
+    std::string file_name = std::string(argv[1]);
 
 	Mat image, gray_img;
-	image = imread(file_name, IMREAD_COLOR);   // Read the file
-	if (!image.data)                              // Check for invalid input
+	image = imread(file_name, IMREAD_COLOR);
+	if (!image.data)
 	{
 		cout << "Could not open or find input file" << endl;
 		return -1;
@@ -44,10 +42,10 @@ int main(int argc, char** argv) {
 	milliseconds diff = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - start_time;
 	std::cout << "time: " << diff.count() << "ms" << std::endl;
 	
-	imshow("Original", image);                   // Show our image inside it.
-	imshow("Gray", gray_img);                   // Show our image inside it.
+	imshow("Original", image);
+	imshow("Gray", gray_img);
 
-	std::cout << "press any button to to close program" << std::endl;
-	waitKey(0);                                          // Wait for a keystroke in the window
+	std::cout << "press any button to close program" << std::endl;
+	waitKey(0);
 	return 0;
 }

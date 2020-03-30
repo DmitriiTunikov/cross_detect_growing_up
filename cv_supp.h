@@ -5,15 +5,11 @@
 #include <iostream>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#define INTEGRAL_IMG_COUNT 8
-using namespace cv;
-using namespace std;
-
 namespace cv_supp {
 
 	struct gradient_img {
-		Mat mag;
-		Mat angle;
+		cv::Mat mag;
+		cv::Mat angle;
 	};
 
 	using hog_vec_t = std::vector<double>;
