@@ -32,14 +32,12 @@ int main(int argc, char** argv) {
 
 	cv::cvtColor(image, gray_img, COLOR_BGR2GRAY);
 
-	using namespace std::chrono;
-
-	milliseconds start_time = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+    std::chrono::milliseconds start_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	
 	CrossDetector cross_detector(gray_img, image);
 	cross_detector.detect_crosses(true);
 
-	milliseconds diff = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - start_time;
+    std::chrono::milliseconds diff = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()) - start_time;
 	std::cout << "time: " << diff.count() << "ms" << std::endl;
 	
 	imshow("Original", image);

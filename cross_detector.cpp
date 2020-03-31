@@ -194,17 +194,18 @@ CrossDetector::growing_point_sets_t CrossDetector::growing_up() {
 		}
 	}
 
+	const int min_rail_len = 2;
 	//remove same rails
 	int cur_size = growing_point_sets.size();
 	for (int i = 0; i < cur_size - 1; i++) {
-		if (growing_point_sets[i + 1].size() == growing_point_sets[i].size() || growing_point_sets[i].size() < 5) {
+		if (growing_point_sets[i + 1].size() == growing_point_sets[i].size() || growing_point_sets[i].size() < min_rail_len) {
 			growing_point_sets.erase(growing_point_sets.begin() + i);
 			cur_size--;
 			i--;
 		}
 	}
 
-	if (growing_point_sets[cur_size - 1].size() < 5)
+	if (growing_point_sets[cur_size - 1].size() < min_rail_len)
 		growing_point_sets.erase(growing_point_sets.begin() + cur_size - 1);
 
 	return growing_point_sets;
