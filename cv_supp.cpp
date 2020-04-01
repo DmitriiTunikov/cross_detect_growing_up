@@ -1,3 +1,5 @@
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
 #include "cv_supp.h"
 
 #define INTEGRAL_IMG_COUNT 8
@@ -11,7 +13,7 @@ gradient_img cv_supp::get_gradients(const cv::Mat& img) {
 	Sobel(img, gx, CV_64F, 1, 0, 1);
 	Sobel(img, gy, CV_64F, 0, 1, 1);
 
-	gradient_img res;
+	gradient_img res{};
 	cartToPolar(gx, gy, res.mag, res.angle, true);
 
 	return res;
@@ -129,4 +131,11 @@ bool cv_supp::hog_has_vertical_edge(const hog_vec_t& hog_vec) {
            hog_vec[1] * vertical_mul > vertical_edge_treashhold ||
            hog_vec[3] * vertical_mul > vertical_edge_treashhold ||
            hog_vec[5] * vertical_mul > vertical_edge_treashhold || hog_vec[7] * vertical_mul > vertical_edge_treashhold;
+}
+
+float cv_supp::get_line_cos(Point pt1, Point pt2) {
+    Point vec1 = Point(pt2.x - pt1.x, pt2.y - pt1.y);
+    Point vec2 = Point(1, 0);
+
+    return (vec1.x * vec2.x + vec1.y * vec2.y) / (sqrt(vec1.x * vec1.x + vec1.y * vec1.y) * sqrt(vec2.x * vec2.x + vec2.y * vec2.y));
 }

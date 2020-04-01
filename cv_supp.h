@@ -20,6 +20,7 @@ namespace cv_supp {
 	double chi_squared(const hog_vec_t& hog1, const hog_vec_t& hog2);
 	double intersect_hogs(const hog_vec_t& hog1, const hog_vec_t& hog2);
 	bool hog_has_vertical_edge(const hog_vec_t& hog_vec);
+    float get_line_cos(cv::Point pt1, cv::Point pt2);
 }
 
 #endif
